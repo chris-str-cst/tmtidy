@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 description = "Keep Time Machine lean by excluding build dirs, with decay-based cleanup"
 license = "MIT"
-repository = "https://github.com/cst/tmtidy"
+repository = "https://github.com/chris-str-cst/tmtidy"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }

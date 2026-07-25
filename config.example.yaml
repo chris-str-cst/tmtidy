@@ -1,0 +1,22 @@
+roots:
+  - path: ~/Documents/it
+    max_depth: 6
+  - path: ~/Projects
+
+# Optional: user rules merge over baked-in defaults (rust/node/python/go/xcode/gradle).
+rules:
+  - name: node
+    markers: [package.json]
+    targets: [node_modules, .next, dist]
+
+decay:
+  max_age_days: 30
+  min_size_mb: 100
+  auto_clean: false
+  exclude_rules: [xcode]
+  exclude_paths:
+    - ~/Projects/archive
+  json_output: ~/.local/state/tmtidy/decay-last.json
+
+ignore:
+  - ~/Projects/keepme
