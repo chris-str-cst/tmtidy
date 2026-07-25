@@ -9,7 +9,7 @@ use anyhow::Result;
 use clap::{CommandFactory, Parser, Subcommand};
 use serde_json::json;
 use std::collections::HashSet;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 #[derive(Parser)]
@@ -41,6 +41,29 @@ enum Command {
     Status,
     /// Print the fully-resolved effective config as YAML
     Config,
+    /// Manage the launchd schedule (macOS) that runs `scan` periodically
+    Schedule {
+        #[command(subcommand)]
+        action: ScheduleAction,
+    },
+}
+
+#[derive(Subcommand)]
+enum ScheduleAction {
+    /// Install & load the LaunchAgent (runs `scan` hourly by default)
+    Install {
+        /// How often to scan: single unit, e.g. 1h, 30m, 24h (default 1h)
+        #[arg(long, default_value = "1h")]
+        every: String,
+    },
+    /// Show schedule state and last run
+    Status,
+    /// Stop the schedule but keep the plist
+    Disable,
+    /// Re-load a previously installed schedule
+    Enable,
+    /// Stop and remove the schedule
+    Uninstall,
 }
 
 pub fn run() -> Result<()> {
@@ -58,6 +81,21 @@ pub fn run() -> Result<()> {
         Command::Decay { clean, dry_run, json } => cmd_decay(&cfg, clean, dry_run, json, cli.verbose),
         Command::Status => cmd_status(&cfg, cli.verbose),
         Command::Config => cmd_config(&cfg),
+        Command::Schedule { action } => cmd_schedule(action, cli.config.as_deref()),
+    }
+}
+
+fn cmd_schedule(action: ScheduleAction, config: Option<&Path>) -> Result<()> {
+    use crate::schedule;
+    match action {
+        ScheduleAction::Install { every } => {
+            let secs = schedule::parse_every(&every)?;
+            schedule::install(config, secs)
+        }
+        ScheduleAction::Status => schedule::status(),
+        ScheduleAction::Disable => schedule::disable(),
+        ScheduleAction::Enable => schedule::enable(),
+        ScheduleAction::Uninstall => schedule::uninstall(),
     }
 }
 

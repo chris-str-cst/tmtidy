@@ -1,5 +1,6 @@
 use anyhow::{bail, Context, Result};
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::process::Command;
 
 /// Parse a single-unit duration (`<int><s|m|h|d>`) into seconds.
 /// Rejects empty, zero, missing number/unit, unknown unit, and multi-unit input.
@@ -79,6 +80,179 @@ pub fn render_plist(exe: &Path, config: Option<&Path>, interval_secs: u64, log: 
         interval = interval_secs,
         log = xml_escape(&log.display().to_string()),
     )
+}
+
+pub fn plist_path() -> PathBuf {
+    dirs::home_dir()
+        .unwrap_or_default()
+        .join("Library/LaunchAgents/com.tmtidy.scan.plist")
+}
+
+pub fn scan_log_path() -> PathBuf {
+    dirs::home_dir()
+        .unwrap_or_default()
+        .join(".local/state/tmtidy/scan.log")
+}
+
+fn ensure_macos() -> Result<()> {
+    if cfg!(target_os = "macos") {
+        Ok(())
+    } else {
+        bail!("scheduling is macOS-only (uses launchd)")
+    }
+}
+
+fn uid() -> Result<String> {
+    let out = Command::new("id").arg("-u").output().context("running `id -u`")?;
+    if !out.status.success() {
+        bail!("`id -u` failed");
+    }
+    Ok(String::from_utf8(out.stdout).context("parsing uid")?.trim().to_string())
+}
+
+fn domain_target() -> Result<String> {
+    Ok(format!("gui/{}", uid()?))
+}
+
+fn is_loaded() -> bool {
+    let target = match domain_target() {
+        Ok(t) => t,
+        Err(_) => return false,
+    };
+    Command::new("launchctl")
+        .arg("print")
+        .arg(format!("{}/{}", target, LABEL))
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
+fn bootstrap(plist: &Path) -> Result<()> {
+    let target = domain_target()?;
+    let out = Command::new("launchctl")
+        .arg("bootstrap")
+        .arg(&target)
+        .arg(plist)
+        .output()
+        .context("launchctl bootstrap")?;
+    if !out.status.success() {
+        bail!(
+            "launchctl bootstrap failed: {}",
+            String::from_utf8_lossy(&out.stderr).trim()
+        );
+    }
+    Ok(())
+}
+
+/// Unload the agent. A not-loaded agent is treated as benign success.
+fn bootout() -> Result<()> {
+    let target = domain_target()?;
+    let out = Command::new("launchctl")
+        .arg("bootout")
+        .arg(format!("{}/{}", target, LABEL))
+        .output()
+        .context("launchctl bootout")?;
+    if out.status.success() {
+        return Ok(());
+    }
+    let err = String::from_utf8_lossy(&out.stderr);
+    // ENOENT-equivalents: agent wasn't loaded. Not an error.
+    if err.contains("No such process") || err.contains("Could not find") || err.contains("no such") {
+        return Ok(());
+    }
+    bail!("launchctl bootout failed: {}", err.trim());
+}
+
+pub fn install(config: Option<&Path>, interval_secs: u64) -> Result<()> {
+    ensure_macos()?;
+    let exe = std::env::current_exe()
+        .context("resolving current executable")?
+        .canonicalize()
+        .context("canonicalizing executable path")?;
+    let log = scan_log_path();
+    if let Some(p) = log.parent() {
+        std::fs::create_dir_all(p).ok();
+    }
+    let plist = plist_path();
+    if let Some(p) = plist.parent() {
+        std::fs::create_dir_all(p).with_context(|| format!("creating {}", p.display()))?;
+    }
+    let xml = render_plist(&exe, config, interval_secs, &log);
+    std::fs::write(&plist, xml).with_context(|| format!("writing {}", plist.display()))?;
+    // Reload cleanly: drop any prior instance, then load the fresh plist.
+    let _ = bootout();
+    bootstrap(&plist)?;
+    println!(
+        "scheduled: {} runs `scan` every {}s (+ at load)",
+        LABEL, interval_secs
+    );
+    println!("binary: {}", exe.display());
+    println!("plist:  {}", plist.display());
+    Ok(())
+}
+
+pub fn uninstall() -> Result<()> {
+    ensure_macos()?;
+    let _ = bootout();
+    let plist = plist_path();
+    if plist.exists() {
+        std::fs::remove_file(&plist).with_context(|| format!("removing {}", plist.display()))?;
+    }
+    println!("unscheduled: {} removed", LABEL);
+    Ok(())
+}
+
+pub fn disable() -> Result<()> {
+    ensure_macos()?;
+    bootout()?;
+    println!("disabled: {} stopped (plist kept — run `schedule enable` to resume)", LABEL);
+    Ok(())
+}
+
+pub fn enable() -> Result<()> {
+    ensure_macos()?;
+    let plist = plist_path();
+    if !plist.exists() {
+        bail!("no schedule installed; run `tmtidy schedule install` first");
+    }
+    let _ = bootout();
+    bootstrap(&plist)?;
+    println!("enabled: {} loaded", LABEL);
+    Ok(())
+}
+
+/// Last `scan` record from the run log, formatted `ts stats`, if any.
+fn last_scan_run() -> Option<String> {
+    let content = std::fs::read_to_string(crate::logging::logfile_path()).ok()?;
+    let line = content
+        .lines()
+        .rev()
+        .find(|l| l.contains("\"command\":\"scan\""))?;
+    match serde_json::from_str::<serde_json::Value>(line) {
+        Ok(v) => Some(format!(
+            "{} {}",
+            v.get("ts").and_then(|t| t.as_str()).unwrap_or("?"),
+            v.get("stats").map(|s| s.to_string()).unwrap_or_default()
+        )),
+        Err(_) => Some(line.to_string()),
+    }
+}
+
+pub fn status() -> Result<()> {
+    ensure_macos()?;
+    let plist = plist_path();
+    println!(
+        "plist:    {} [{}]",
+        plist.display(),
+        if plist.exists() { "present" } else { "absent" }
+    );
+    println!("loaded:   {}", if is_loaded() { "yes" } else { "no" });
+    println!("scan log: {}", scan_log_path().display());
+    match last_scan_run() {
+        Some(s) => println!("last run: {}", s),
+        None => println!("last run: (none yet)"),
+    }
+    Ok(())
 }
 
 #[cfg(test)]
