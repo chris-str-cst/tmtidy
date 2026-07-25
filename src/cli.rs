@@ -6,7 +6,7 @@ use crate::stats::{DecayStats, ScanStats};
 use crate::walker::walk_root;
 use crate::logging::append_run;
 use anyhow::Result;
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
 use serde_json::json;
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -26,7 +26,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Walk roots and exclude build dirs (default)
+    /// Walk roots and exclude build dirs
     Scan,
     /// Find (and optionally trash) stale excluded build dirs
     Decay {
@@ -45,8 +45,15 @@ enum Command {
 
 pub fn run() -> Result<()> {
     let cli = Cli::parse();
+    // No subcommand: print help and exit rather than silently scanning (which
+    // writes exclusion xattrs). Scanning must be requested explicitly.
+    let Some(command) = cli.command else {
+        Cli::command().print_help()?;
+        println!();
+        return Ok(());
+    };
     let cfg = Config::load(cli.config.as_deref())?;
-    match cli.command.unwrap_or(Command::Scan) {
+    match command {
         Command::Scan => cmd_scan(&cfg, cli.verbose),
         Command::Decay { clean, dry_run, json } => cmd_decay(&cfg, clean, dry_run, json, cli.verbose),
         Command::Status => cmd_status(&cfg, cli.verbose),
