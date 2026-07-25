@@ -1,6 +1,7 @@
 mod config;
 mod defaults;
 mod exclude;
+mod logging;
 mod rules;
 mod stats;
 mod walker;
