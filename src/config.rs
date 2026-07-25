@@ -161,4 +161,13 @@ mod tests {
         assert_eq!(cfg.roots[0].path, home.join("proj"));
         assert_eq!(cfg.ignore[0], home.join("skip"));
     }
+
+    #[test]
+    fn expands_tilde_in_decay_exclude_paths_and_json_output() {
+        let home = dirs::home_dir().unwrap();
+        let yaml = "decay:\n  exclude_paths:\n    - ~/foo\n  json_output: ~/bar/x.json\n";
+        let cfg: Config = Config::from_yaml_str(yaml).unwrap();
+        assert_eq!(cfg.decay.exclude_paths[0], home.join("foo"));
+        assert_eq!(cfg.decay.json_output, Some(home.join("bar/x.json")));
+    }
 }

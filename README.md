@@ -22,7 +22,7 @@ tmtidy decay --json    # machine-readable report
 ```
 
 Config lives at `~/.config/tmtidy/config.yaml`. See `config.example.yaml`.
-Baked-in rules cover rust/node/python/go/xcode/gradle, so a minimal config with
+Baked-in rules cover rust/node/python/go/swiftpm/gradle, so a minimal config with
 only `roots:` works out of the box. Runs are logged to
 `~/.local/state/tmtidy/tmtidy.log`.
 

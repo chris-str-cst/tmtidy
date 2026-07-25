@@ -158,4 +158,27 @@ mod tests {
         cfg.decay.exclude_rules = vec!["rust".into()];
         assert!(find_candidates_with(&cfg, SystemTime::now(), &|p| p == target).is_empty());
     }
+
+    /// Spec §8 safety invariant: decay only ever trashes a dir that matches a
+    /// rule's target name. An old, "excluded" subdir whose name is not any
+    /// configured target must never be selected, even though it satisfies
+    /// every other criterion (old + excluded). This holds because
+    /// `match_dir` only yields `dir.join(target)` paths for configured
+    /// targets — a non-target sibling is never considered a candidate.
+    #[test]
+    fn non_target_named_dir_is_never_a_candidate_even_if_old_and_excluded() {
+        let d = tempdir().unwrap();
+        let cfg = base_cfg(d.path()); // rule "rust": Cargo.toml -> target
+        let proj = d.path().join("proj");
+        let not_a_target = proj.join("notatarget");
+        fs::create_dir_all(&not_a_target).unwrap();
+        fs::write(proj.join("Cargo.toml"), "").unwrap();
+        fs::write(not_a_target.join("artifact.bin"), vec![0u8; 2048]).unwrap();
+        age(&not_a_target, 100);
+
+        // is_excluded_fn unconditionally reports this dir as excluded, to
+        // isolate the assertion to the target-matching invariant.
+        let cands = find_candidates_with(&cfg, SystemTime::now(), &|p| p == not_a_target);
+        assert!(cands.is_empty());
+    }
 }

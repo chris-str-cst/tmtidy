@@ -45,9 +45,9 @@ pub fn run() -> Result<()> {
     let cli = Cli::parse();
     let cfg = Config::load(cli.config.as_deref())?;
     match cli.command.unwrap_or(Command::Scan) {
-        Command::Scan => cmd_scan(&cfg),
-        Command::Decay { clean, dry_run, json } => cmd_decay(&cfg, clean, dry_run, json),
-        Command::Status => cmd_status(&cfg),
+        Command::Scan => cmd_scan(&cfg, cli.verbose),
+        Command::Decay { clean, dry_run, json } => cmd_decay(&cfg, clean, dry_run, json, cli.verbose),
+        Command::Status => cmd_status(&cfg, cli.verbose),
     }
 }
 
@@ -58,7 +58,7 @@ fn ensure_roots(cfg: &Config) -> Result<()> {
     Ok(())
 }
 
-fn cmd_scan(cfg: &Config) -> Result<()> {
+fn cmd_scan(cfg: &Config, verbose: bool) -> Result<()> {
     ensure_roots(cfg)?;
     let prune = cfg.target_names();
     let ignore: HashSet<PathBuf> = cfg.ignore.iter().cloned().collect();
@@ -69,10 +69,18 @@ fn cmd_scan(cfg: &Config) -> Result<()> {
             for m in match_dir(&dir, &cfg.rules) {
                 if is_excluded(&m.path) {
                     stats.skipped_existing += 1;
+                    if verbose {
+                        println!("= already {}", m.path.display());
+                    }
                     continue;
                 }
                 match add_exclusion(&m.path) {
-                    Ok(()) => stats.excluded_new += 1,
+                    Ok(()) => {
+                        stats.excluded_new += 1;
+                        if verbose {
+                            println!("+ excluded {}", m.path.display());
+                        }
+                    }
                     Err(e) => {
                         stats.errors += 1;
                         eprintln!("warn: {}", e);
@@ -89,10 +97,14 @@ fn cmd_scan(cfg: &Config) -> Result<()> {
     Ok(())
 }
 
-fn cmd_decay(cfg: &Config, clean: bool, dry_run: bool, json_flag: bool) -> Result<()> {
+/// Precedence: --dry-run always wins; else clean if --clean or auto_clean.
+fn should_clean(dry_run: bool, clean: bool, auto_clean: bool) -> bool {
+    !dry_run && (clean || auto_clean)
+}
+
+fn cmd_decay(cfg: &Config, clean: bool, dry_run: bool, json_flag: bool, verbose: bool) -> Result<()> {
     ensure_roots(cfg)?;
-    // Precedence: --dry-run always wins; else clean if --clean or auto_clean.
-    let do_clean = !dry_run && (clean || cfg.decay.auto_clean);
+    let do_clean = should_clean(dry_run, clean, cfg.decay.auto_clean);
 
     let mut candidates = find_candidates(cfg, SystemTime::now());
     let mut stats = DecayStats { candidates: candidates.len() as u64, ..Default::default() };
@@ -100,9 +112,18 @@ fn cmd_decay(cfg: &Config, clean: bool, dry_run: bool, json_flag: bool) -> Resul
     for c in &mut candidates {
         if do_clean {
             match trash_path(&c.path) {
-                Ok(()) => { c.trashed = true; stats.trashed += 1; stats.reclaimed_bytes += c.size_bytes; }
+                Ok(()) => {
+                    c.trashed = true;
+                    stats.trashed += 1;
+                    stats.reclaimed_bytes += c.size_bytes;
+                    if verbose {
+                        println!("{} ({}, {}d) trashed", c.path.display(), human(c.size_bytes), c.age_days);
+                    }
+                }
                 Err(e) => eprintln!("warn: {}", e),
             }
+        } else if verbose {
+            println!("{} ({}, {}d) would trash", c.path.display(), human(c.size_bytes), c.age_days);
         }
     }
 
@@ -135,7 +156,7 @@ fn cmd_decay(cfg: &Config, clean: bool, dry_run: bool, json_flag: bool) -> Resul
     Ok(())
 }
 
-fn cmd_status(cfg: &Config) -> Result<()> {
+fn cmd_status(cfg: &Config, verbose: bool) -> Result<()> {
     ensure_roots(cfg)?;
     let prune = cfg.target_names();
     let ignore: HashSet<PathBuf> = cfg.ignore.iter().cloned().collect();
@@ -143,7 +164,12 @@ fn cmd_status(cfg: &Config) -> Result<()> {
     for root in &cfg.roots {
         for dir in walk_root(root, &prune, &ignore) {
             for m in match_dir(&dir, &cfg.rules) {
-                if is_excluded(&m.path) { count += 1; }
+                if is_excluded(&m.path) {
+                    count += 1;
+                    if verbose {
+                        println!("{}", m.path.display());
+                    }
+                }
             }
         }
     }
@@ -161,4 +187,34 @@ fn human(bytes: u64) -> String {
 
 fn now_iso() -> String {
     chrono::Utc::now().to_rfc3339()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::should_clean;
+
+    #[test]
+    fn dry_run_forces_false_regardless_of_clean() {
+        assert!(!should_clean(true, true, false));
+    }
+
+    #[test]
+    fn dry_run_forces_false_regardless_of_auto_clean() {
+        assert!(!should_clean(true, false, true));
+    }
+
+    #[test]
+    fn clean_flag_true_and_not_dry_run_cleans() {
+        assert!(should_clean(false, true, false));
+    }
+
+    #[test]
+    fn auto_clean_true_and_not_dry_run_cleans() {
+        assert!(should_clean(false, false, true));
+    }
+
+    #[test]
+    fn all_false_does_not_clean() {
+        assert!(!should_clean(false, false, false));
+    }
 }

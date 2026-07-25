@@ -15,8 +15,12 @@ pub fn walk_root(
     // `node_modules`) and ignored paths never appear in `out` at all, and
     // nothing under them is visited. This is fine for consumers: rules::match_dir
     // inspects the PARENT dir for a marker (e.g. proj containing a
-    // node_modules subdir), and the parent is never itself a pruned/ignored
-    // name, so it is always yielded regardless of what's pruned below it.
+    // node_modules subdir), and the parent is normally not itself a
+    // pruned/ignored name, so it is yielded regardless of what's pruned below
+    // it. Known limitation: if a real directory is itself named like a
+    // target (e.g. a project literally named `build` or `dist`), it gets
+    // pruned and is never inspected for markers either. Rare layout;
+    // acceptable for v1.
     let walker = WalkDir::new(&root.path)
         .max_depth(root.max_depth)
         .into_iter()

@@ -12,8 +12,13 @@ pub fn default_rules() -> Vec<Rule> {
         r("rust", &["Cargo.toml"], &["target"]),
         r("node", &["package.json"], &["node_modules", ".next", "dist"]),
         r("python", &["pyproject.toml", "setup.py"], &[".venv", "__pycache__", "build"]),
-        r("go", &["go.mod"], &["bin"]),
-        r("xcode", &["Package.swift"], &[".build"]),
+        // Go's build cache is global (~/Library/Caches/go-build), so there's
+        // nothing to exclude per-project.
+        r("go", &["go.mod"], &[]),
+        // Real Xcode DerivedData lives at ~/Library/Developer/Xcode/DerivedData
+        // (global, out of scope for per-project rules). This rule matches
+        // SwiftPM's local .build dir instead.
+        r("swiftpm", &["Package.swift"], &[".build"]),
         r("gradle", &["build.gradle", "build.gradle.kts"], &["build", ".gradle"]),
     ]
 }

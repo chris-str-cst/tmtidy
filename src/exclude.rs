@@ -24,6 +24,8 @@ pub fn add_exclusion(path: &Path) -> Result<()> {
     run_tmutil("addexclusion", path)
 }
 
+// Exercised by tests; reserved as public API for a future unexclude path.
+#[allow(dead_code)]
 pub fn remove_exclusion(path: &Path) -> Result<()> {
     run_tmutil("removeexclusion", path)
 }
