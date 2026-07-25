@@ -19,12 +19,18 @@ tmtidy status          # count current exclusions
 tmtidy decay           # report stale excluded dirs (dry-run)
 tmtidy decay --clean   # move stale excluded dirs to Trash
 tmtidy decay --json    # machine-readable report
+tmtidy config          # print the fully-resolved effective config as YAML
 ```
 
-Config lives at `~/.config/tmtidy/config.yaml`. See `config.example.yaml`.
-Baked-in rules cover rust/node/python/go/swiftpm/gradle, so a minimal config with
-only `roots:` works out of the box. Runs are logged to
+Config lives at `~/.config/tmtidy/config.yaml`. Baked-in rules cover
+rust/node/python/go/swiftpm/gradle/maven/terraform/terragrunt, so a minimal
+config with only `roots:` works out of the box. Use `defaults:` to pick which
+baked rules apply, and `tmtidy config` to see what's active. Runs are logged to
 `~/.local/state/tmtidy/tmtidy.log`.
+
+**See [Configuration](docs/config.md)** for the full reference: every config
+key, the baked-in rules table, the `defaults:` allowlist, custom rules, and
+decay settings. A ready-to-edit `config.example.yaml` is included.
 
 ## How it works
 
@@ -33,5 +39,29 @@ only `roots:` works out of the box. Runs are logged to
   the exclusion xattr, is older than `max_age_days`, is at least `min_size_mb`,
   and is not excluded via `exclude_rules`/`exclude_paths`/`ignore`.
 - Deletions go to the macOS Trash — always recoverable.
+
+## Special directories
+
+Some build caches live in **global**, per-user locations, not inside a project,
+so per-project rules can't reach them:
+
+- **Go** — build cache is global (`~/Library/Caches/go-build`); the `go` rule
+  excludes nothing per-project.
+- **Xcode DerivedData** — global (`~/Library/Developer/Xcode/DerivedData`); the
+  `swiftpm` rule targets SwiftPM's local `.build` instead.
+
+Exclude a fixed global path once by hand: `tmutil addexclusion ~/Library/Caches/go-build`.
+
+## Full Disk Access
+
+Exclusions use sticky (xattr) exclusions — **no `sudo` or root**. But macOS
+**TCC** still gates *reading* protected folders. If your roots include
+`~/Desktop`, `~/Documents`, `~/Downloads`, or external/network volumes and scans
+silently skip files, grant your terminal (or IDE) **Full Disk Access**:
+
+> System Settings → Privacy & Security → Full Disk Access → enable your terminal
+
+FDA is only about traversing protected folders; the exclusion mechanism itself
+never needs elevated privileges. See [Configuration](docs/config.md) for details.
 
 ## macOS only

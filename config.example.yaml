@@ -1,9 +1,13 @@
 roots:
   - path: ~/Documents/it
     max_depth: 6
-  - path: ~/Projects
+  - path: ~/Code
 
-# Optional: user rules merge over baked-in defaults (rust/node/python/go/swiftpm/gradle).
+# Optional: allowlist which baked-in defaults apply. Omit for all six
+# (rust/node/python/go/swiftpm/gradle). Empty list = none.
+# defaults: [rust, node]
+
+# Optional: user rules merge over baked-in defaults (rust/node/python/go/swiftpm/gradle/maven/terraform/terragrunt).
 rules:
   - name: node
     markers: [package.json]

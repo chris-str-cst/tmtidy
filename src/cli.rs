@@ -39,6 +39,8 @@ enum Command {
     },
     /// Show current exclusion count
     Status,
+    /// Print the fully-resolved effective config as YAML
+    Config,
 }
 
 pub fn run() -> Result<()> {
@@ -48,7 +50,15 @@ pub fn run() -> Result<()> {
         Command::Scan => cmd_scan(&cfg, cli.verbose),
         Command::Decay { clean, dry_run, json } => cmd_decay(&cfg, clean, dry_run, json, cli.verbose),
         Command::Status => cmd_status(&cfg, cli.verbose),
+        Command::Config => cmd_config(&cfg),
     }
+}
+
+/// Print the resolved effective config (roots, all active rules incl. baked,
+/// decay, ignore). No roots required — lets you inspect baked defaults early.
+fn cmd_config(cfg: &Config) -> Result<()> {
+    print!("{}", serde_yaml::to_string(cfg)?);
+    Ok(())
 }
 
 fn ensure_roots(cfg: &Config) -> Result<()> {

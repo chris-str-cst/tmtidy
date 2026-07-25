@@ -101,6 +101,7 @@ mod tests {
         Config {
             roots: vec![Root { path: root.to_path_buf(), max_depth: 8 }],
             rules: vec![Rule { name: "rust".into(), markers: vec!["Cargo.toml".into()], targets: vec!["target".into()] }],
+            defaults: None,
             decay: DecayConfig { max_age_days: 30, min_size_mb: 0, ..Default::default() },
             ignore: vec![],
         }

@@ -20,5 +20,10 @@ pub fn default_rules() -> Vec<Rule> {
         // SwiftPM's local .build dir instead.
         r("swiftpm", &["Package.swift"], &[".build"]),
         r("gradle", &["build.gradle", "build.gradle.kts"], &["build", ".gradle"]),
+        r("maven", &["pom.xml"], &["target"]),
+        // .terraform.lock.hcl is written by `init` alongside the .terraform
+        // provider/module cache; also covers OpenTofu (same dir + lockfile).
+        r("terraform", &[".terraform.lock.hcl"], &[".terraform"]),
+        r("terragrunt", &["terragrunt.hcl", "root.hcl"], &[".terragrunt-cache"]),
     ]
 }

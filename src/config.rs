@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
 use crate::defaults::default_rules;
@@ -8,7 +8,7 @@ fn default_depth() -> usize { 8 }
 fn default_max_age_days() -> u64 { 30 }
 fn default_min_size_mb() -> u64 { 100 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Root {
     #[serde(deserialize_with = "de_path")]
     pub path: PathBuf,
@@ -16,7 +16,7 @@ pub struct Root {
     pub max_depth: usize,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Rule {
     pub name: String,
     #[serde(default)]
@@ -25,7 +25,7 @@ pub struct Rule {
     pub targets: Vec<String>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct DecayConfig {
     #[serde(default = "default_max_age_days")]
     pub max_age_days: u64,
@@ -54,12 +54,17 @@ impl Default for DecayConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Config {
     #[serde(default)]
     pub roots: Vec<Root>,
     #[serde(default)]
     pub rules: Vec<Rule>,
+    /// Allowlist of baked-in default rule names. None = all defaults; Some =
+    /// only listed. User `rules` always apply regardless. Not serialized:
+    /// resolved `rules` already reflects it.
+    #[serde(default, skip_serializing)]
+    pub defaults: Option<Vec<String>>,
     #[serde(default)]
     pub decay: DecayConfig,
     #[serde(default, deserialize_with = "de_paths")]
@@ -101,15 +106,21 @@ impl Config {
             Config::from_yaml_str(&s)
         } else {
             // No config file: defaults only, empty roots (caller validates).
-            let mut cfg = Config { roots: vec![], rules: vec![], decay: DecayConfig::default(), ignore: vec![] };
+            let mut cfg = Config { roots: vec![], rules: vec![], defaults: None, decay: DecayConfig::default(), ignore: vec![] };
             cfg.merge_default_rules();
             Ok(cfg)
         }
     }
 
     /// Add default rules for any name the user did not define. User rules win.
+    /// If `defaults` is set, only baked rules named in it are merged.
     fn merge_default_rules(&mut self) {
         for d in default_rules() {
+            if let Some(allow) = &self.defaults {
+                if !allow.iter().any(|n| n == &d.name) {
+                    continue;
+                }
+            }
             if !self.rules.iter().any(|r| r.name == d.name) {
                 self.rules.push(d);
             }
@@ -151,6 +162,43 @@ mod tests {
         assert!(names.contains(&"custom")); // user rule added
         let node = cfg.rules.iter().find(|r| r.name == "node").unwrap();
         assert_eq!(node.targets, vec!["node_modules"]); // user override wins, single entry
+    }
+
+    #[test]
+    fn defaults_allowlist_limits_baked_rules() {
+        let yaml = "roots: []\ndefaults: [rust]\n";
+        let cfg: Config = Config::from_yaml_str(yaml).unwrap();
+        let names: Vec<&str> = cfg.rules.iter().map(|r| r.name.as_str()).collect();
+        assert_eq!(names, vec!["rust"]); // only allowlisted baked rule
+    }
+
+    #[test]
+    fn defaults_allowlist_keeps_user_rules() {
+        // allowlist filters baked rules only; user rules always apply
+        let yaml = "roots: []\ndefaults: [rust]\nrules:\n  - name: custom\n    markers: [Foo]\n    targets: [bar]\n";
+        let cfg: Config = Config::from_yaml_str(yaml).unwrap();
+        let names: Vec<&str> = cfg.rules.iter().map(|r| r.name.as_str()).collect();
+        assert!(names.contains(&"custom"));
+        assert!(names.contains(&"rust"));
+        assert!(!names.contains(&"node"));
+    }
+
+    #[test]
+    fn empty_defaults_allowlist_drops_all_baked_rules() {
+        let yaml = "roots: []\ndefaults: []\n";
+        let cfg: Config = Config::from_yaml_str(yaml).unwrap();
+        assert!(cfg.rules.is_empty());
+    }
+
+    #[test]
+    fn config_serializes_to_yaml_without_defaults_key() {
+        let yaml = "roots: []\ndefaults: [rust]\n";
+        let cfg: Config = Config::from_yaml_str(yaml).unwrap();
+        let out = serde_yaml::to_string(&cfg).unwrap();
+        assert!(out.contains("rust")); // resolved baked rule present
+        assert!(!out.contains("defaults:")); // skip_serializing hides allowlist
+        // round-trips back into a Config
+        assert!(Config::from_yaml_str(&out).is_ok());
     }
 
     #[test]
