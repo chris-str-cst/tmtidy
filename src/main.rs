@@ -1,5 +1,6 @@
 mod config;
 mod defaults;
+mod exclude;
 mod rules;
 mod walker;
 
