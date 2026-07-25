@@ -49,8 +49,8 @@ tmtidy schedule uninstall        # remove entirely
 Only `scan` is scheduled (safe, non-destructive). Run `tmtidy decay` yourself
 when you want to reclaim space. `--every` takes a single unit: `s`, `m`, `h`, `d`
 (minimum 1 minute).
-The agent logs to `~/.local/state/tmtidy/scan.log`; logs are capped at 1 MiB and
-rotated to `<name>.1`.
+The agent logs to `~/.local/state/tmtidy/scan.log`; logs are capped at 5 MiB —
+oldest entries are dropped in place, with no archive kept.
 
 ## How it works
 
