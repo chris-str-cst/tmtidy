@@ -87,7 +87,7 @@ never needs elevated privileges. See [Configuration](docs/config.md) for details
 
 ## Development
 
-Needs a stable Rust toolchain (install via [rustup](https://rustup.rs)).
+Needs a stable Rust toolchain — via [rustup](https://rustup.rs) or `brew install rust`.
 
 ```bash
 cargo build            # debug build
