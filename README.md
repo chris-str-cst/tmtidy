@@ -32,6 +32,25 @@ baked rules apply, and `tmtidy config` to see what's active. Runs are logged to
 key, the baked-in rules table, the `defaults:` allowlist, custom rules, and
 decay settings. A ready-to-edit `config.example.yaml` is included.
 
+## Scheduling (macOS)
+
+Run `scan` automatically so build dirs are excluded before Time Machine's next
+hourly backup. Installs a per-user launchd LaunchAgent — no sudo, loads at login.
+
+```bash
+tmtidy schedule install          # hourly (default), runs once immediately too
+tmtidy schedule install --every 30m
+tmtidy schedule status           # installed? loaded? last run
+tmtidy schedule disable          # stop, keep config
+tmtidy schedule enable           # resume
+tmtidy schedule uninstall        # remove entirely
+```
+
+Only `scan` is scheduled (safe, non-destructive). Run `tmtidy decay` yourself
+when you want to reclaim space. `--every` takes a single unit: `s`, `m`, `h`, `d`.
+The agent logs to `~/.local/state/tmtidy/scan.log`; logs are capped at 1 MiB and
+rotated to `<name>.1`.
+
 ## How it works
 
 - Exclusions use `tmutil addexclusion` (sticky/xattr) — no root required.
