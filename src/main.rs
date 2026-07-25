@@ -1,3 +1,4 @@
+mod cli;
 mod config;
 mod decay;
 mod defaults;
@@ -8,5 +9,8 @@ mod stats;
 mod walker;
 
 fn main() {
-    println!("tmtidy {}", env!("CARGO_PKG_VERSION"));
+    if let Err(e) = cli::run() {
+        eprintln!("error: {:#}", e);
+        std::process::exit(1);
+    }
 }
