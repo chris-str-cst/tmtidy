@@ -1,4 +1,5 @@
 mod config;
+mod decay;
 mod defaults;
 mod exclude;
 mod logging;
