@@ -5,6 +5,7 @@ mod defaults;
 mod exclude;
 mod logging;
 mod rules;
+mod schedule;
 mod stats;
 mod walker;
 
