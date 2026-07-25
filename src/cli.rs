@@ -115,7 +115,9 @@ fn ensure_roots(cfg: &Config) -> Result<()> {
 
 fn cmd_scan(cfg: &Config, verbose: bool) -> Result<()> {
     ensure_roots(cfg)?;
-    // Bound the launchd-written scan log across runs.
+    // Bound the launchd-written scan log across runs. launchd keeps scan.log's
+    // fd open for this run, so rotating here sends THIS run's output to
+    // `<log>.1`; launchd recreates scan.log fresh on the next spawn.
     crate::logging::rotate_if_needed(
         &crate::schedule::scan_log_path(),
         crate::logging::MAX_LOG_BYTES,

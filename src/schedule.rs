@@ -27,6 +27,9 @@ pub fn parse_every(s: &str) -> Result<u64> {
     if secs == 0 {
         bail!("--every must be greater than 0");
     }
+    if secs < 60 {
+        bail!("--every must be at least 60s (1 minute)");
+    }
     Ok(secs)
 }
 
@@ -85,7 +88,8 @@ pub fn render_plist(exe: &Path, config: Option<&Path>, interval_secs: u64, log: 
 pub fn plist_path() -> PathBuf {
     dirs::home_dir()
         .unwrap_or_default()
-        .join("Library/LaunchAgents/com.tmtidy.scan.plist")
+        .join("Library/LaunchAgents")
+        .join(format!("{}.plist", LABEL))
 }
 
 pub fn scan_log_path() -> PathBuf {
@@ -157,7 +161,7 @@ fn bootout() -> Result<()> {
     }
     let err = String::from_utf8_lossy(&out.stderr);
     // ENOENT-equivalents: agent wasn't loaded. Not an error.
-    if err.contains("No such process") || err.contains("Could not find") || err.contains("no such") {
+    if err.contains("No such process") || err.contains("Could not find") {
         return Ok(());
     }
     bail!("launchctl bootout failed: {}", err.trim());
@@ -266,11 +270,13 @@ mod tests {
         assert_eq!(parse_every("1h").unwrap(), 3600);
         assert_eq!(parse_every("24h").unwrap(), 86400);
         assert_eq!(parse_every("1d").unwrap(), 86400);
+        assert_eq!(parse_every("60s").unwrap(), 60);
+        assert_eq!(parse_every("1m").unwrap(), 60);
     }
 
     #[test]
     fn parse_every_rejects_bad_input() {
-        for bad in ["", "0", "5x", "h", "-1h", "1h30m", "  "] {
+        for bad in ["", "0", "5x", "h", "-1h", "1h30m", "  ", "1s", "30s", "59s"] {
             assert!(parse_every(bad).is_err(), "expected {:?} to be rejected", bad);
         }
     }
