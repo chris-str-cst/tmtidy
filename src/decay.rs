@@ -62,7 +62,7 @@ pub fn find_candidates_with(
     let mut seen: HashSet<PathBuf> = HashSet::new();
 
     for root in &cfg.roots {
-        for dir in walk_root(root, &prune, &ignore) {
+        for dir in walk_root(root, &prune, &ignore).dirs {
             for m in match_dir(&dir, &cfg.rules) {
                 // (a) rule not excluded
                 if excl_rules.contains(&m.rule) { continue; }

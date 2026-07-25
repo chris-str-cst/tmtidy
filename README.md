@@ -15,6 +15,7 @@ cargo install --path .
 
 ```bash
 tmtidy scan            # exclude build dirs under configured roots (default)
+tmtidy scan --dry-run  # report what would be excluded, write nothing
 tmtidy status          # count current exclusions
 tmtidy decay           # report stale excluded dirs (dry-run)
 tmtidy decay --clean   # move stale excluded dirs to Trash
@@ -52,6 +53,11 @@ when you want to reclaim space. `--every` takes a single unit: `s`, `m`, `h`, `d
 The agent logs to `~/.local/state/tmtidy/scan.log`; logs are capped at 5 MiB —
 oldest entries are dropped in place, with no archive kept.
 
+The agent runs as you (per-user domain), never root. If your roots include
+macOS-protected folders, grant the **tmtidy binary** Full Disk Access — a
+scheduled run does *not* inherit your terminal's grant. See
+[Full Disk Access](#full-disk-access).
+
 ## How it works
 
 - Exclusions set the sticky `com.apple.metadata:com_apple_backup_excludeItem`
@@ -77,10 +83,21 @@ Exclude a fixed global path once by hand: `tmutil addexclusion ~/Library/Caches/
 
 Exclusions use sticky (xattr) exclusions — **no `sudo` or root**. But macOS
 **TCC** still gates *reading* protected folders. If your roots include
-`~/Desktop`, `~/Documents`, `~/Downloads`, or external/network volumes and scans
-silently skip files, grant your terminal (or IDE) **Full Disk Access**:
+`~/Desktop`, `~/Documents`, `~/Downloads`, or external/network volumes without
+Full Disk Access, `scan`/`status` **print an error** naming the denied paths and
+the exact binary to grant (they don't silently skip). Run `tmtidy scan` and read
+the message — it tells you what to do.
 
 > System Settings → Privacy & Security → Full Disk Access → enable your terminal
+
+**TCC grants attach to the binary, and do *not* inherit.** When you run
+`tmtidy scan` in Terminal it borrows Terminal's grant; a scheduled run has no
+such parent, so launchd judges the `tmtidy` binary on its own. Result: an
+interactive scan can reach protected folders while the scheduled one gets
+permission-denied on the same paths (visible in `~/.local/state/tmtidy/scan.log`).
+If you schedule scans over protected folders, add the **tmtidy binary itself** to
+Full Disk Access — `schedule install` prints its resolved path as `binary:`. If
+your roots are only project/dev trees outside the protected set, no FDA is needed.
 
 FDA is only about traversing protected folders; the exclusion mechanism itself
 never needs elevated privileges. See [Configuration](docs/config.md) for details.

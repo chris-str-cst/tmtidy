@@ -27,7 +27,11 @@ struct Cli {
 #[derive(Subcommand)]
 enum Command {
     /// Walk roots and exclude build dirs
-    Scan,
+    Scan {
+        /// Report what would be excluded without writing any exclusions
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Find (and optionally trash) stale excluded build dirs
     Decay {
         #[arg(long)]
@@ -77,7 +81,7 @@ pub fn run() -> Result<()> {
     };
     let cfg = Config::load(cli.config.as_deref())?;
     match command {
-        Command::Scan => cmd_scan(&cfg, cli.verbose),
+        Command::Scan { dry_run } => cmd_scan(&cfg, dry_run, cli.verbose),
         Command::Decay { clean, dry_run, json } => cmd_decay(&cfg, clean, dry_run, json, cli.verbose),
         Command::Status => cmd_status(&cfg, cli.verbose),
         Command::Config => cmd_config(&cfg),
@@ -113,27 +117,39 @@ fn ensure_roots(cfg: &Config) -> Result<()> {
     Ok(())
 }
 
-fn cmd_scan(cfg: &Config, verbose: bool) -> Result<()> {
+fn cmd_scan(cfg: &Config, dry_run: bool, verbose: bool) -> Result<()> {
     ensure_roots(cfg)?;
     // Cap the launchd-written scan log: drops its oldest lines in place (no
     // archive). launchd holds scan.log's fd in append mode for this run, so its
-    // output lands after the trimmed tail.
-    crate::logging::cap_log(
-        &crate::schedule::scan_log_path(),
-        crate::logging::MAX_LOG_BYTES,
-    )
-    .ok();
+    // output lands after the trimmed tail. Skip on dry-run — it mutates nothing.
+    if !dry_run {
+        crate::logging::cap_log(
+            &crate::schedule::scan_log_path(),
+            crate::logging::MAX_LOG_BYTES,
+        )
+        .ok();
+    }
     let prune = cfg.target_names();
     let ignore: HashSet<PathBuf> = cfg.ignore.iter().cloned().collect();
     let mut stats = ScanStats::default();
+    let mut denied: Vec<PathBuf> = Vec::new();
 
     for root in &cfg.roots {
-        for dir in walk_root(root, &prune, &ignore) {
+        let outcome = walk_root(root, &prune, &ignore);
+        denied.extend(outcome.denied);
+        for dir in outcome.dirs {
             for m in match_dir(&dir, &cfg.rules) {
                 if is_excluded(&m.path) {
                     stats.skipped_existing += 1;
                     if verbose {
                         println!("= already {}", m.path.display());
+                    }
+                    continue;
+                }
+                if dry_run {
+                    stats.excluded_new += 1;
+                    if verbose {
+                        println!("+ would exclude {}", m.path.display());
                     }
                     continue;
                 }
@@ -153,11 +169,47 @@ fn cmd_scan(cfg: &Config, verbose: bool) -> Result<()> {
         }
     }
     println!(
-        "scan: {} newly excluded, {} already excluded, {} errors",
-        stats.excluded_new, stats.skipped_existing, stats.errors
+        "scan: {} {}, {} already excluded, {} errors{}",
+        stats.excluded_new,
+        if dry_run { "would exclude" } else { "newly excluded" },
+        stats.skipped_existing,
+        stats.errors,
+        if dry_run { " [dry-run]" } else { "" },
     );
-    append_run(&json!({"ts": now_iso(), "command": "scan", "stats": stats}))?;
+    warn_denied(&denied);
+    // Dry-run mutates nothing — don't append to the run log either.
+    if !dry_run {
+        append_run(&json!({"ts": now_iso(), "command": "scan", "stats": stats}))?;
+    }
     Ok(())
+}
+
+/// Warn when roots couldn't be read due to macOS TCC (Full Disk Access).
+/// Points the user at the exact binary to grant, since TCC grants attach to the
+/// executable and do NOT inherit from Terminal or through launchd.
+fn warn_denied(denied: &[PathBuf]) {
+    if denied.is_empty() {
+        return;
+    }
+    eprintln!(
+        "error: permission denied on {} path(s) — likely a macOS-protected \
+         folder (e.g. ~/Documents, ~/Desktop) without Full Disk Access:",
+        denied.len()
+    );
+    for p in denied.iter().take(5) {
+        eprintln!("  {}", p.display());
+    }
+    if denied.len() > 5 {
+        eprintln!("  … and {} more", denied.len() - 5);
+    }
+    let exe = std::env::current_exe()
+        .map(|p| p.display().to_string())
+        .unwrap_or_else(|_| "the tmtidy binary".to_string());
+    eprintln!(
+        "  Grant Full Disk Access to this binary in System Settings → Privacy & \
+         Security → Full Disk Access, then re-run:\n    {}",
+        exe
+    );
 }
 
 /// Precedence: --dry-run always wins; else clean if --clean or auto_clean.
@@ -224,8 +276,11 @@ fn cmd_status(cfg: &Config, verbose: bool) -> Result<()> {
     let prune = cfg.target_names();
     let ignore: HashSet<PathBuf> = cfg.ignore.iter().cloned().collect();
     let mut count = 0u64;
+    let mut denied: Vec<PathBuf> = Vec::new();
     for root in &cfg.roots {
-        for dir in walk_root(root, &prune, &ignore) {
+        let outcome = walk_root(root, &prune, &ignore);
+        denied.extend(outcome.denied);
+        for dir in outcome.dirs {
             for m in match_dir(&dir, &cfg.rules) {
                 if is_excluded(&m.path) {
                     count += 1;
@@ -237,6 +292,7 @@ fn cmd_status(cfg: &Config, verbose: bool) -> Result<()> {
         }
     }
     println!("status: {} excluded build dirs", count);
+    warn_denied(&denied);
     Ok(())
 }
 
