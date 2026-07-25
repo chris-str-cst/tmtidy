@@ -54,7 +54,8 @@ oldest entries are dropped in place, with no archive kept.
 
 ## How it works
 
-- Exclusions use `tmutil addexclusion` (sticky/xattr) — no root required.
+- Exclusions set the sticky `com.apple.metadata:com_apple_backup_excludeItem`
+  xattr directly (the same one `tmutil addexclusion` writes) — no root required.
 - Decay only trashes a dir that matches a build-target rule, currently carries
   the exclusion xattr, is older than `max_age_days`, is at least `min_size_mb`,
   and is not excluded via `exclude_rules`/`exclude_paths`/`ignore`.
@@ -83,5 +84,17 @@ silently skip files, grant your terminal (or IDE) **Full Disk Access**:
 
 FDA is only about traversing protected folders; the exclusion mechanism itself
 never needs elevated privileges. See [Configuration](docs/config.md) for details.
+
+## Development
+
+Needs a stable Rust toolchain (install via [rustup](https://rustup.rs)).
+
+```bash
+cargo build            # debug build
+cargo build --release  # optimized binary -> target/release/tmtidy
+cargo test             # run the full test suite
+cargo run -- scan      # run a subcommand from source (args after `--`)
+cargo clippy           # lints
+```
 
 ## macOS only
