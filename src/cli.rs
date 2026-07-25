@@ -115,6 +115,12 @@ fn ensure_roots(cfg: &Config) -> Result<()> {
 
 fn cmd_scan(cfg: &Config, verbose: bool) -> Result<()> {
     ensure_roots(cfg)?;
+    // Bound the launchd-written scan log across runs.
+    crate::logging::rotate_if_needed(
+        &crate::schedule::scan_log_path(),
+        crate::logging::MAX_LOG_BYTES,
+    )
+    .ok();
     let prune = cfg.target_names();
     let ignore: HashSet<PathBuf> = cfg.ignore.iter().cloned().collect();
     let mut stats = ScanStats::default();
