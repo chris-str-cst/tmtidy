@@ -1,0 +1,29 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommitsDisabled",
+    "schedule:weekly"
+  ],
+  "timezone": "Europe/Berlin",
+  "commitMessagePrefix": "⬆️",
+  "labels": ["dependencies"],
+  "lockFileMaintenance": {
+    "enabled": true
+  },
+  "packageRules": [
+    {
+      "description": "Group and label GitHub Actions bumps",
+      "matchManagers": ["github-actions"],
+      "groupName": "github-actions",
+      "commitMessagePrefix": "👷"
+    },
+    {
+      "description": "Group Cargo minor/patch bumps into one PR",
+      "matchManagers": ["cargo"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "cargo minor/patch"
+    }
+  ]
+}
