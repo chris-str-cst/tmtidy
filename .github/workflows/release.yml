@@ -1,0 +1,79 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Resolve version
+        id: v
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          CARGO_VERSION="$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)"
+          if [ "$VERSION" != "$CARGO_VERSION" ]; then
+            echo "::error::tag v$VERSION does not match Cargo.toml version $CARGO_VERSION"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build tarballs
+        id: build
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.v.outputs.version }}"
+          for TARGET in aarch64-apple-darwin x86_64-apple-darwin; do
+            rustup target add "$TARGET"
+            cargo build --release --locked --target "$TARGET"
+            STAGE="$(mktemp -d)"
+            cp "target/$TARGET/release/tmtidy" "$STAGE/"
+            cp LICENSE README.md "$STAGE/"
+            TARBALL="tmtidy-$VERSION-$TARGET.tar.gz"
+            tar -czf "$TARBALL" -C "$STAGE" tmtidy LICENSE README.md
+            SHA="$(shasum -a 256 "$TARBALL" | cut -d' ' -f1)"
+            case "$TARGET" in
+              aarch64-*) echo "sha_arm=$SHA" >> "$GITHUB_OUTPUT" ;;
+              x86_64-*)  echo "sha_intel=$SHA" >> "$GITHUB_OUTPUT" ;;
+            esac
+            echo "$TARGET -> $SHA"
+          done
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            tmtidy-${{ steps.v.outputs.version }}-aarch64-apple-darwin.tar.gz
+            tmtidy-${{ steps.v.outputs.version }}-x86_64-apple-darwin.tar.gz
+          generate_release_notes: true
+
+      - name: Bump Homebrew formula
+        run: |
+          set -euo pipefail
+          scripts/bump-formula.sh \
+            "${{ steps.v.outputs.version }}" \
+            "${{ steps.build.outputs.sha_arm }}" \
+            "${{ steps.build.outputs.sha_intel }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet Formula/tmtidy.rb; then
+            echo "formula already up to date"
+          else
+            git add Formula/tmtidy.rb
+            git commit -m "🍺 bump formula to v${{ steps.v.outputs.version }}"
+            git push origin HEAD:main
+          fi

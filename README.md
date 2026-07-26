@@ -1,5 +1,7 @@
 # tmtidy
 
+[![CI](https://github.com/chris-str-cst/tmtidy/actions/workflows/ci.yml/badge.svg)](https://github.com/chris-str-cst/tmtidy/actions/workflows/ci.yml)
+
 Keep Time Machine backups lean. `tmtidy` scans your project roots, excludes
 build/cache dirs (`target`, `node_modules`, `.venv`, …) from Time Machine using
 sticky exclusions (no sudo), and can reclaim disk from long-dormant excluded
@@ -7,9 +9,41 @@ dirs by moving them to the Trash.
 
 ## Install
 
+macOS only. Apple Silicon and Intel are both supported.
+
+### Homebrew (recommended)
+
 ```bash
-cargo install --path .
+brew tap chris-str-cst/tmtidy https://github.com/chris-str-cst/tmtidy
+brew install tmtidy
 ```
+
+Upgrade later with `brew upgrade tmtidy`.
+
+### Manual download
+
+Grab the tarball for your arch from the
+[Releases page](https://github.com/chris-str-cst/tmtidy/releases), extract, and
+put `tmtidy` on your `PATH`:
+
+```bash
+tar -xzf tmtidy-*-aarch64-apple-darwin.tar.gz   # or x86_64- on Intel
+sudo mv tmtidy /usr/local/bin/
+```
+
+A double-clicked download is quarantined by macOS. Clear it once (Homebrew
+installs are never quarantined, so the tap skips this):
+
+```bash
+xattr -d com.apple.quarantine /usr/local/bin/tmtidy
+```
+
+Binaries are unsigned; the `xattr` clear (or right-click → Open) is all Gatekeeper
+needs.
+
+### From source
+
+See [Development](#development).
 
 ## Usage
 
@@ -112,6 +146,13 @@ cargo build --release  # optimized binary -> target/release/tmtidy
 cargo test             # run the full test suite
 cargo run -- scan      # run a subcommand from source (args after `--`)
 cargo clippy           # lints
+cargo install --path . # build + install to ~/.cargo/bin/tmtidy
 ```
+
+CI (`.github/workflows/ci.yml`) runs `fmt --check`, `clippy -D warnings`, tests,
+and a release build for both macOS arches on every push/PR. Pushing a `v*` tag
+triggers `release.yml`: it builds per-arch tarballs, publishes a GitHub Release,
+and auto-bumps `Formula/tmtidy.rb`. Keep the git tag and `Cargo.toml` version in
+sync — the release job fails on mismatch.
 
 ## macOS only
