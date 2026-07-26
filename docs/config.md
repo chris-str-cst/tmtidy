@@ -5,7 +5,7 @@ Config lives at `~/.config/tmtidy/config.yaml`. Every key is optional except
 
 ```yaml
 roots:
-  - path: ~/Code
+  - path: ~/code
 ```
 
 Run `tmtidy config` to print the **fully-resolved effective config** — your
@@ -36,11 +36,11 @@ lockfile).
 
 ### Selecting which defaults apply
 
-Use `defaults:` as an allowlist. Omit it for all six. List names to keep only
+Use `defaults:` as an allowlist. Omit it for all nine. List names to keep only
 those. An empty list disables all baked defaults.
 
 ```yaml
-defaults: [rust, node]   # only these baked rules; python/go/swiftpm/gradle off
+defaults: [rust, node]   # only these; the other seven baked rules off
 ```
 
 Your own `rules:` always apply regardless of `defaults:` — the allowlist filters
@@ -82,20 +82,28 @@ tmutil addexclusion ~/Library/Caches/go-build
 
 ## Full Disk Access
 
-`tmtidy` uses **sticky (xattr) exclusions** via `tmutil addexclusion` — this
-needs **no `sudo` and no root**, unlike fixed-path (`tmutil addexclusion -p`)
-exclusions.
+`tmtidy` uses **sticky (xattr) exclusions**: it writes the
+`com.apple.metadata:com_apple_backup_excludeItem` xattr directly — the same one
+`tmutil addexclusion` sets, but without shelling out to `tmutil` (which blocks
+~10s per call). This needs **no `sudo` and no root**, unlike fixed-path
+(`tmutil addexclusion -p`) exclusions.
 
 However, macOS **TCC** still gates *reading* certain folders. If your roots
 include protected locations — `~/Desktop`, `~/Documents`, `~/Downloads`, or
-external/network volumes — the first scan may be blocked or prompt for access.
-If scans silently skip files there, grant your terminal (Terminal.app, iTerm,
-or your IDE) **Full Disk Access**:
+external/network volumes — the scan **prints an error** naming the denied paths
+(it doesn't silently skip). Grant **Full Disk Access** to whatever runs tmtidy:
 
-> System Settings → Privacy & Security → Full Disk Access → enable your terminal
+> System Settings → Privacy & Security → Full Disk Access
 
-Then re-run. Full Disk Access is only about *traversing* protected folders; the
-exclusion mechanism itself never requires elevated privileges.
+For an interactive `tmtidy scan`, grant your terminal (Terminal.app, iTerm, or
+your IDE) — the run borrows its grant. **But TCC grants attach to the binary and
+do *not* inherit**, so a scheduled run (via launchd, with no terminal parent) is
+judged on the `tmtidy` binary itself. If you schedule scans over protected
+folders, add the **tmtidy binary** to Full Disk Access — `schedule install`
+prints its resolved path as `binary:`. Then re-run.
+
+Full Disk Access is only about *traversing* protected folders; the exclusion
+mechanism itself never requires elevated privileges.
 
 ## Decay settings
 
@@ -131,7 +139,7 @@ Paths to skip entirely during the walk (neither excluded nor decayed):
 
 ```yaml
 ignore:
-  - ~/Code/keepme
+  - ~/code/keepme
 ```
 
 ## Full example

@@ -91,6 +91,34 @@ tmtidy config          # print the fully-resolved effective config as YAML
 Config lives at `~/.config/tmtidy/config.yaml` (see [Configure](#configure) to
 create it). Runs are logged to `~/.local/state/tmtidy/tmtidy.log`.
 
+### Verbose output
+
+By default `scan` prints only a summary line. Pass the global `--verbose` flag
+(before the subcommand) to see every excluded dir. `+` = excluded (or *would* on
+`--dry-run`), `=` = already excluded:
+
+```console
+$ tmtidy --verbose scan --dry-run
++ would exclude ~/code/web/node_modules
++ would exclude ~/code/web/dist
++ would exclude ~/code/ios/.build
++ would exclude ~/code/ml/.venv
++ would exclude ~/code/ml/__pycache__
++ would exclude ~/code/api/target
+scan: 6 would exclude, 0 already excluded, 0 errors [dry-run]
+```
+
+On a re-run, dirs already carrying the exclusion xattr show as `=`:
+
+```console
+$ tmtidy --verbose scan
+= already ~/code/web/node_modules
+= already ~/code/api/target
+scan: 0 newly excluded, 2 already excluded, 0 errors
+```
+
+`--verbose` works the same way with `decay` and `status`.
+
 ## Scheduling (macOS)
 
 Run `scan` automatically so build dirs are excluded before Time Machine's next
