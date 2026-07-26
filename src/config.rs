@@ -4,9 +4,15 @@ use std::path::{Path, PathBuf};
 
 use crate::defaults::default_rules;
 
-fn default_depth() -> usize { 8 }
-fn default_max_age_days() -> u64 { 30 }
-fn default_min_size_mb() -> u64 { 100 }
+fn default_depth() -> usize {
+    8
+}
+fn default_max_age_days() -> u64 {
+    30
+}
+fn default_min_size_mb() -> u64 {
+    100
+}
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Root {
@@ -76,17 +82,23 @@ fn expand(s: &str) -> PathBuf {
 }
 
 fn de_path<'de, D>(d: D) -> std::result::Result<PathBuf, D::Error>
-where D: serde::Deserializer<'de> {
+where
+    D: serde::Deserializer<'de>,
+{
     let s = String::deserialize(d)?;
     Ok(expand(&s))
 }
 fn de_paths<'de, D>(d: D) -> std::result::Result<Vec<PathBuf>, D::Error>
-where D: serde::Deserializer<'de> {
+where
+    D: serde::Deserializer<'de>,
+{
     let v = Vec::<String>::deserialize(d)?;
     Ok(v.iter().map(|s| expand(s)).collect())
 }
 fn de_opt_path<'de, D>(d: D) -> std::result::Result<Option<PathBuf>, D::Error>
-where D: serde::Deserializer<'de> {
+where
+    D: serde::Deserializer<'de>,
+{
     let o = Option::<String>::deserialize(d)?;
     Ok(o.map(|s| expand(&s)))
 }
@@ -106,7 +118,13 @@ impl Config {
             Config::from_yaml_str(&s)
         } else {
             // No config file: defaults only, empty roots (caller validates).
-            let mut cfg = Config { roots: vec![], rules: vec![], defaults: None, decay: DecayConfig::default(), ignore: vec![] };
+            let mut cfg = Config {
+                roots: vec![],
+                rules: vec![],
+                defaults: None,
+                decay: DecayConfig::default(),
+                ignore: vec![],
+            };
             cfg.merge_default_rules();
             Ok(cfg)
         }
@@ -129,12 +147,17 @@ impl Config {
 
     /// Union of every target dir name across all rules — used to prune the walk.
     pub fn target_names(&self) -> std::collections::HashSet<String> {
-        self.rules.iter().flat_map(|r| r.targets.iter().cloned()).collect()
+        self.rules
+            .iter()
+            .flat_map(|r| r.targets.iter().cloned())
+            .collect()
     }
 }
 
 pub fn default_config_path() -> PathBuf {
-    dirs::home_dir().unwrap_or_default().join(".config/tmtidy/config.yaml")
+    dirs::home_dir()
+        .unwrap_or_default()
+        .join(".config/tmtidy/config.yaml")
 }
 
 #[cfg(test)]
@@ -158,7 +181,7 @@ mod tests {
         let yaml = "roots: []\nrules:\n  - name: node\n    markers: [package.json]\n    targets: [node_modules]\n  - name: custom\n    markers: [Foo]\n    targets: [bar]\n";
         let cfg: Config = Config::from_yaml_str(yaml).unwrap();
         let names: Vec<&str> = cfg.rules.iter().map(|r| r.name.as_str()).collect();
-        assert!(names.contains(&"rust"));   // default preserved
+        assert!(names.contains(&"rust")); // default preserved
         assert!(names.contains(&"custom")); // user rule added
         let node = cfg.rules.iter().find(|r| r.name == "node").unwrap();
         assert_eq!(node.targets, vec!["node_modules"]); // user override wins, single entry
@@ -197,7 +220,7 @@ mod tests {
         let out = serde_yaml::to_string(&cfg).unwrap();
         assert!(out.contains("rust")); // resolved baked rule present
         assert!(!out.contains("defaults:")); // skip_serializing hides allowlist
-        // round-trips back into a Config
+                                             // round-trips back into a Config
         assert!(Config::from_yaml_str(&out).is_ok());
     }
 

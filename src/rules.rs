@@ -16,7 +16,10 @@ pub fn match_dir(dir: &Path, rules: &[Rule]) -> Vec<Match> {
         for target in &rule.targets {
             let p = dir.join(target);
             if p.is_dir() {
-                out.push(Match { path: p, rule: rule.name.clone() });
+                out.push(Match {
+                    path: p,
+                    rule: rule.name.clone(),
+                });
             }
         }
     }
@@ -31,9 +34,11 @@ mod tests {
     use tempfile::tempdir;
 
     fn rule(name: &str, markers: &[&str], targets: &[&str]) -> Rule {
-        Rule { name: name.into(),
+        Rule {
+            name: name.into(),
             markers: markers.iter().map(|s| s.to_string()).collect(),
-            targets: targets.iter().map(|s| s.to_string()).collect() }
+            targets: targets.iter().map(|s| s.to_string()).collect(),
+        }
     }
 
     #[test]

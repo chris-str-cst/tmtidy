@@ -65,19 +65,37 @@ pub fn find_candidates_with(
         for dir in walk_root(root, &prune, &ignore).dirs {
             for m in match_dir(&dir, &cfg.rules) {
                 // (a) rule not excluded
-                if excl_rules.contains(&m.rule) { continue; }
+                if excl_rules.contains(&m.rule) {
+                    continue;
+                }
                 // (e) not under ignore/exclude_paths
-                if under_any(&m.path, &ignore) || under_any(&m.path, &excl_paths) { continue; }
+                if under_any(&m.path, &ignore) || under_any(&m.path, &excl_paths) {
+                    continue;
+                }
                 // (b) currently excluded
-                if !is_excluded_fn(&m.path) { continue; }
+                if !is_excluded_fn(&m.path) {
+                    continue;
+                }
                 // (c) old enough
                 let age = age_days(&m.path, now);
-                if age < cfg.decay.max_age_days { continue; }
+                if age < cfg.decay.max_age_days {
+                    continue;
+                }
                 // (d) big enough
                 let size = dir_size(&m.path);
-                if size < min_bytes { continue; }
-                if !seen.insert(m.path.clone()) { continue; }
-                out.push(Candidate { path: m.path, rule: m.rule, size_bytes: size, age_days: age, trashed: false });
+                if size < min_bytes {
+                    continue;
+                }
+                if !seen.insert(m.path.clone()) {
+                    continue;
+                }
+                out.push(Candidate {
+                    path: m.path,
+                    rule: m.rule,
+                    size_bytes: size,
+                    age_days: age,
+                    trashed: false,
+                });
             }
         }
     }
@@ -92,17 +110,28 @@ pub fn trash_path(path: &Path) -> Result<()> {
 mod tests {
     use super::*;
     use crate::config::{Config, DecayConfig, Root, Rule};
+    use filetime::{set_file_mtime, FileTime};
     use std::fs;
     use std::time::{Duration, SystemTime};
-    use tempfile::tempdir;
-    use filetime::{set_file_mtime, FileTime}; // add filetime as dev-dependency
+    use tempfile::tempdir; // add filetime as dev-dependency
 
     fn base_cfg(root: &std::path::Path) -> Config {
         Config {
-            roots: vec![Root { path: root.to_path_buf(), max_depth: 8 }],
-            rules: vec![Rule { name: "rust".into(), markers: vec!["Cargo.toml".into()], targets: vec!["target".into()] }],
+            roots: vec![Root {
+                path: root.to_path_buf(),
+                max_depth: 8,
+            }],
+            rules: vec![Rule {
+                name: "rust".into(),
+                markers: vec!["Cargo.toml".into()],
+                targets: vec!["target".into()],
+            }],
             defaults: None,
-            decay: DecayConfig { max_age_days: 30, min_size_mb: 0, ..Default::default() },
+            decay: DecayConfig {
+                max_age_days: 30,
+                min_size_mb: 0,
+                ..Default::default()
+            },
             ignore: vec![],
         }
     }

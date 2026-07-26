@@ -8,7 +8,9 @@ use std::path::{Path, PathBuf};
 pub const MAX_LOG_BYTES: u64 = 5 * 1024 * 1024; // 5 MiB
 
 pub fn logfile_path() -> PathBuf {
-    dirs::home_dir().unwrap_or_default().join(".local/state/tmtidy/tmtidy.log")
+    dirs::home_dir()
+        .unwrap_or_default()
+        .join(".local/state/tmtidy/tmtidy.log")
 }
 
 /// Keep the log at or under `max_bytes` by discarding the OLDEST entries in
@@ -46,7 +48,10 @@ pub fn append_run_to(path: &Path, record: &serde_json::Value) -> Result<()> {
             .with_context(|| format!("creating log dir {}", parent.display()))?;
     }
     cap_log(path, MAX_LOG_BYTES)?;
-    let mut f = OpenOptions::new().create(true).append(true).open(path)
+    let mut f = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)
         .with_context(|| format!("opening log {}", path.display()))?;
     let line = serde_json::to_string(record)?;
     writeln!(f, "{}", line)?;

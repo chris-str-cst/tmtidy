@@ -1,10 +1,10 @@
 use crate::config::Config;
 use crate::decay::{find_candidates, trash_path};
 use crate::exclude::{add_exclusion, is_excluded};
+use crate::logging::append_run;
 use crate::rules::match_dir;
 use crate::stats::{DecayStats, ScanStats};
 use crate::walker::walk_root;
-use crate::logging::append_run;
 use anyhow::Result;
 use clap::{CommandFactory, Parser, Subcommand};
 use serde_json::json;
@@ -13,7 +13,11 @@ use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 #[derive(Parser)]
-#[command(name = "tmtidy", version, about = "Keep Time Machine lean by excluding build dirs")]
+#[command(
+    name = "tmtidy",
+    version,
+    about = "Keep Time Machine lean by excluding build dirs"
+)]
 struct Cli {
     /// Config file (default ~/.config/tmtidy/config.yaml)
     #[arg(long, global = true)]
@@ -82,7 +86,11 @@ pub fn run() -> Result<()> {
     let cfg = Config::load(cli.config.as_deref())?;
     match command {
         Command::Scan { dry_run } => cmd_scan(&cfg, dry_run, cli.verbose),
-        Command::Decay { clean, dry_run, json } => cmd_decay(&cfg, clean, dry_run, json, cli.verbose),
+        Command::Decay {
+            clean,
+            dry_run,
+            json,
+        } => cmd_decay(&cfg, clean, dry_run, json, cli.verbose),
         Command::Status => cmd_status(&cfg, cli.verbose),
         Command::Config => cmd_config(&cfg),
         Command::Schedule { action } => cmd_schedule(action, cli.config.as_deref()),
@@ -112,7 +120,9 @@ fn cmd_config(cfg: &Config) -> Result<()> {
 
 fn ensure_roots(cfg: &Config) -> Result<()> {
     if cfg.roots.is_empty() {
-        anyhow::bail!("no roots configured. Create ~/.config/tmtidy/config.yaml with a `roots:` list.");
+        anyhow::bail!(
+            "no roots configured. Create ~/.config/tmtidy/config.yaml with a `roots:` list."
+        );
     }
     Ok(())
 }
@@ -171,7 +181,11 @@ fn cmd_scan(cfg: &Config, dry_run: bool, verbose: bool) -> Result<()> {
     println!(
         "scan: {} {}, {} already excluded, {} errors{}",
         stats.excluded_new,
-        if dry_run { "would exclude" } else { "newly excluded" },
+        if dry_run {
+            "would exclude"
+        } else {
+            "newly excluded"
+        },
         stats.skipped_existing,
         stats.errors,
         if dry_run { " [dry-run]" } else { "" },
@@ -217,12 +231,21 @@ fn should_clean(dry_run: bool, clean: bool, auto_clean: bool) -> bool {
     !dry_run && (clean || auto_clean)
 }
 
-fn cmd_decay(cfg: &Config, clean: bool, dry_run: bool, json_flag: bool, verbose: bool) -> Result<()> {
+fn cmd_decay(
+    cfg: &Config,
+    clean: bool,
+    dry_run: bool,
+    json_flag: bool,
+    verbose: bool,
+) -> Result<()> {
     ensure_roots(cfg)?;
     let do_clean = should_clean(dry_run, clean, cfg.decay.auto_clean);
 
     let mut candidates = find_candidates(cfg, SystemTime::now());
-    let mut stats = DecayStats { candidates: candidates.len() as u64, ..Default::default() };
+    let mut stats = DecayStats {
+        candidates: candidates.len() as u64,
+        ..Default::default()
+    };
 
     for c in &mut candidates {
         if do_clean {
@@ -232,13 +255,23 @@ fn cmd_decay(cfg: &Config, clean: bool, dry_run: bool, json_flag: bool, verbose:
                     stats.trashed += 1;
                     stats.reclaimed_bytes += c.size_bytes;
                     if verbose {
-                        println!("{} ({}, {}d) trashed", c.path.display(), human(c.size_bytes), c.age_days);
+                        println!(
+                            "{} ({}, {}d) trashed",
+                            c.path.display(),
+                            human(c.size_bytes),
+                            c.age_days
+                        );
                     }
                 }
                 Err(e) => eprintln!("warn: {}", e),
             }
         } else if verbose {
-            println!("{} ({}, {}d) would trash", c.path.display(), human(c.size_bytes), c.age_days);
+            println!(
+                "{} ({}, {}d) would trash",
+                c.path.display(),
+                human(c.size_bytes),
+                c.age_days
+            );
         }
     }
 
@@ -258,9 +291,14 @@ fn cmd_decay(cfg: &Config, clean: bool, dry_run: bool, json_flag: bool, verbose:
     } else {
         println!(
             "decay: {} candidates (>{}d){}, {} → {}",
-            stats.candidates, cfg.decay.max_age_days,
+            stats.candidates,
+            cfg.decay.max_age_days,
             if do_clean { "" } else { " [dry-run]" },
-            human(if do_clean { stats.reclaimed_bytes } else { total_reclaimed }),
+            human(if do_clean {
+                stats.reclaimed_bytes
+            } else {
+                total_reclaimed
+            }),
             if do_clean { "Trash" } else { "would trash" },
         );
     }
@@ -300,7 +338,10 @@ fn human(bytes: u64) -> String {
     const U: [&str; 5] = ["B", "KB", "MB", "GB", "TB"];
     let mut b = bytes as f64;
     let mut i = 0;
-    while b >= 1024.0 && i < U.len() - 1 { b /= 1024.0; i += 1; }
+    while b >= 1024.0 && i < U.len() - 1 {
+        b /= 1024.0;
+        i += 1;
+    }
     format!("{:.1} {}", b, U[i])
 }
 

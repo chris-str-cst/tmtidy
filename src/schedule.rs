@@ -14,7 +14,9 @@ pub fn parse_every(s: &str) -> Result<u64> {
     if num.is_empty() {
         bail!("--every: missing number in {:?}", s);
     }
-    let n: u64 = num.parse().with_context(|| format!("--every: bad number in {:?}", s))?;
+    let n: u64 = num
+        .parse()
+        .with_context(|| format!("--every: bad number in {:?}", s))?;
     let mult = match unit {
         "s" => 1,
         "m" => 60,
@@ -36,7 +38,9 @@ pub fn parse_every(s: &str) -> Result<u64> {
 pub const LABEL: &str = "com.tmtidy.scan";
 
 fn xml_escape(s: &str) -> String {
-    s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
 }
 
 /// Render the LaunchAgent plist XML. Pure — no filesystem access.
@@ -107,11 +111,17 @@ fn ensure_macos() -> Result<()> {
 }
 
 fn uid() -> Result<String> {
-    let out = Command::new("id").arg("-u").output().context("running `id -u`")?;
+    let out = Command::new("id")
+        .arg("-u")
+        .output()
+        .context("running `id -u`")?;
     if !out.status.success() {
         bail!("`id -u` failed");
     }
-    Ok(String::from_utf8(out.stdout).context("parsing uid")?.trim().to_string())
+    Ok(String::from_utf8(out.stdout)
+        .context("parsing uid")?
+        .trim()
+        .to_string())
 }
 
 fn domain_target() -> Result<String> {
@@ -209,7 +219,10 @@ pub fn uninstall() -> Result<()> {
 pub fn disable() -> Result<()> {
     ensure_macos()?;
     bootout()?;
-    println!("disabled: {} stopped (plist kept — run `schedule enable` to resume)", LABEL);
+    println!(
+        "disabled: {} stopped (plist kept — run `schedule enable` to resume)",
+        LABEL
+    );
     Ok(())
 }
 
@@ -277,7 +290,11 @@ mod tests {
     #[test]
     fn parse_every_rejects_bad_input() {
         for bad in ["", "0", "5x", "h", "-1h", "1h30m", "  ", "1s", "30s", "59s"] {
-            assert!(parse_every(bad).is_err(), "expected {:?} to be rejected", bad);
+            assert!(
+                parse_every(bad).is_err(),
+                "expected {:?} to be rejected",
+                bad
+            );
         }
     }
 

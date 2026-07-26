@@ -92,7 +92,10 @@ mod tests {
         fs::create_dir_all(base.join("proj/src")).unwrap();
         fs::create_dir_all(base.join("skip/inner")).unwrap();
 
-        let root = Root { path: base.to_path_buf(), max_depth: 8 };
+        let root = Root {
+            path: base.to_path_buf(),
+            max_depth: 8,
+        };
         let prune: HashSet<String> = ["node_modules".to_string()].into_iter().collect();
         let ignore: HashSet<PathBuf> = [base.join("skip")].into_iter().collect();
 
@@ -131,7 +134,10 @@ mod tests {
         // raises on a protected dir without Full Disk Access.
         fs::set_permissions(&locked, fs::Permissions::from_mode(0o000)).unwrap();
 
-        let root = Root { path: base.to_path_buf(), max_depth: 8 };
+        let root = Root {
+            path: base.to_path_buf(),
+            max_depth: 8,
+        };
         let out = walk_root(&root, &HashSet::new(), &HashSet::new());
 
         // Restore perms so tempdir cleanup can remove it.
