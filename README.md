@@ -98,7 +98,13 @@ tmtidy config          # print the fully-resolved effective config as YAML
 ```
 
 Config lives at `~/.config/tmtidy/config.yaml` (see [Configure](#configure) to
-create it). Runs are logged to `~/.local/state/tmtidy/tmtidy.log`.
+create it). Runs are logged to `~/.local/state/tmtidy/tmtidy.log`. Both log
+files (`tmtidy.log` and the scheduler's `scan.log`) are self-capping at 5 MiB:
+once a log passes that size the oldest lines are dropped in place — the log
+never grows unbounded, and no rotated archive is kept.
+
+These paths honor `$XDG_CONFIG_HOME` and `$XDG_STATE_HOME` when set to absolute
+paths, falling back to `~/.config` and `~/.local/state` otherwise.
 
 ### Verbose output
 

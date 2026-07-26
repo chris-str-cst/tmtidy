@@ -8,9 +8,7 @@ use std::path::{Path, PathBuf};
 pub const MAX_LOG_BYTES: u64 = 5 * 1024 * 1024; // 5 MiB
 
 pub fn logfile_path() -> PathBuf {
-    dirs::home_dir()
-        .unwrap_or_default()
-        .join(".local/state/tmtidy/tmtidy.log")
+    crate::paths::state_home().join("tmtidy/tmtidy.log")
 }
 
 /// Keep the log at or under `max_bytes` by discarding the OLDEST entries in
