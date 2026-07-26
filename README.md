@@ -45,6 +45,34 @@ needs.
 
 See [Development](#development).
 
+## Configure
+
+`tmtidy` needs at least one **root** to scan. Baked-in rules already cover
+rust/node/python/go/swiftpm/gradle/maven/terraform/terragrunt, so a config with
+only `roots:` works out of the box. Create it:
+
+```bash
+mkdir -p ~/.config/tmtidy
+cat > ~/.config/tmtidy/config.yaml <<'EOF'
+roots:
+  - path: ~/code      # scan everything under here (add more entries as needed)
+    max_depth: 8      # optional, default 8
+EOF
+```
+
+Verify what's active — your roots plus every baked-in rule, decay settings, and
+ignores:
+
+```bash
+tmtidy config
+```
+
+Without a config (or with no `roots:`), `scan`/`status`/`decay` exit with
+`no roots configured …`. Want a fuller starting template with every option
+commented? Grab [`config.example.yaml`](config.example.yaml). Full reference —
+all keys, the baked-rule table, the `defaults:` allowlist, custom rules, and
+decay — in [Configuration](docs/config.md).
+
 ## Usage
 
 ```bash
@@ -57,15 +85,8 @@ tmtidy decay --json    # machine-readable report
 tmtidy config          # print the fully-resolved effective config as YAML
 ```
 
-Config lives at `~/.config/tmtidy/config.yaml`. Baked-in rules cover
-rust/node/python/go/swiftpm/gradle/maven/terraform/terragrunt, so a minimal
-config with only `roots:` works out of the box. Use `defaults:` to pick which
-baked rules apply, and `tmtidy config` to see what's active. Runs are logged to
-`~/.local/state/tmtidy/tmtidy.log`.
-
-**See [Configuration](docs/config.md)** for the full reference: every config
-key, the baked-in rules table, the `defaults:` allowlist, custom rules, and
-decay settings. A ready-to-edit `config.example.yaml` is included.
+Config lives at `~/.config/tmtidy/config.yaml` (see [Configure](#configure) to
+create it). Runs are logged to `~/.local/state/tmtidy/tmtidy.log`.
 
 ## Scheduling (macOS)
 
