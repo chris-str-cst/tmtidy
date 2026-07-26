@@ -18,6 +18,9 @@ rules:
     targets: [node_modules, .next, dist]
 
 # Decay: move stale excluded build dirs to the Trash (recoverable).
+# Opt-in and manual — only runs on `tmtidy decay --clean` (never on scan, never
+# scheduled). Omit this whole block to keep the defaults; nothing decays until
+# you ask. These keys just tune the thresholds for when you do.
 decay:
   max_age_days: 30        # trash only dirs older than this
   min_size_mb: 100        # ...and at least this big

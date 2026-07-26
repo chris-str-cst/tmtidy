@@ -120,9 +120,12 @@ scheduled run does *not* inherit your terminal's grant. See
 
 - Exclusions set the sticky `com.apple.metadata:com_apple_backup_excludeItem`
   xattr directly (the same one `tmutil addexclusion` writes) — no root required.
-- Decay only trashes a dir that matches a build-target rule, currently carries
-  the exclusion xattr, is older than `max_age_days`, is at least `min_size_mb`,
-  and is not excluded via `exclude_rules`/`exclude_paths`/`ignore`.
+- Decay is opt-in and manual: it only trashes on `tmtidy decay --clean` (never
+  during `scan`, never scheduled), and is dry-run by default. Skip it entirely and
+  nothing is ever trashed. When run, it only trashes a dir that matches a
+  build-target rule, currently carries the exclusion xattr, is older than
+  `max_age_days`, is at least `min_size_mb`, and is not excluded via
+  `exclude_rules`/`exclude_paths`/`ignore`.
 - Deletions go to the macOS Trash — always recoverable.
 
 ## Special directories
