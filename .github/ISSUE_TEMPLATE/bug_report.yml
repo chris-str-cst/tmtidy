@@ -1,0 +1,64 @@
+name: Bug report
+description: Something in tmtidy behaves incorrectly
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Please fill in the details below so it can be reproduced.
+        For security vulnerabilities, do **not** file here — see CONTRIBUTING.md.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What went wrong, and what you expected instead.
+      placeholder: Running `tmtidy scan` excluded X, but it should have skipped it because …
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: The exact commands, in order. Include the relevant part of your config if it matters.
+      placeholder: |
+        1. config.yaml has `roots: [~/code]`
+        2. run `tmtidy scan --dry-run`
+        3. see …
+      render: shell
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: tmtidy version
+      description: Output of `tmtidy --version`.
+      placeholder: tmtidy 0.1.0
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How installed
+      options:
+        - Homebrew
+        - Manual download
+        - From source (cargo)
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version & chip
+      placeholder: macOS 15.5, Apple Silicon (M-series)
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: |
+        From `~/.local/state/tmtidy/tmtidy.log` (or `scan.log` for scheduled runs).
+        This will be rendered as code — no need for backticks.
+      render: shell
+    validations:
+      required: false
