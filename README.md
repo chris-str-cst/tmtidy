@@ -15,10 +15,13 @@ macOS only. Apple Silicon and Intel are both supported.
 
 ```bash
 brew tap chris-str-cst/tmtidy https://github.com/chris-str-cst/tmtidy
+brew trust chris-str-cst/tmtidy   # recent Homebrew gates third-party taps
 brew install tmtidy
 ```
 
-Upgrade later with `brew upgrade tmtidy`.
+Upgrade later with `brew upgrade tmtidy`. The `brew trust` step is only needed on
+Homebrew versions that block untrusted taps — if `brew install` doesn't complain,
+you can skip it.
 
 ### Manual download
 
