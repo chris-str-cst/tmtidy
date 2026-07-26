@@ -1,6 +1,6 @@
 [package]
 name = "tmtidy"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Keep Time Machine lean by excluding build dirs, with decay-based cleanup"
 license = "MIT"
