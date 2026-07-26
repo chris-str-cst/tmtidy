@@ -155,9 +155,7 @@ impl Config {
 }
 
 pub fn default_config_path() -> PathBuf {
-    dirs::home_dir()
-        .unwrap_or_default()
-        .join(".config/tmtidy/config.yaml")
+    crate::paths::config_home().join("tmtidy/config.yaml")
 }
 
 #[cfg(test)]

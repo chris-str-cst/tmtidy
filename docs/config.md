@@ -8,6 +8,9 @@ roots:
   - path: ~/code
 ```
 
+The config location honors `$XDG_CONFIG_HOME` when set to an absolute path (else
+`~/.config`); logs likewise honor `$XDG_STATE_HOME` (else `~/.local/state`).
+
 Run `tmtidy config` to print the **fully-resolved effective config** — your
 settings merged with the baked-in defaults. Useful to see exactly which rules
 are active before a scan.

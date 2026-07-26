@@ -4,6 +4,7 @@ mod decay;
 mod defaults;
 mod exclude;
 mod logging;
+mod paths;
 mod rules;
 mod schedule;
 mod stats;

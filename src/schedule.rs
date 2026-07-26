@@ -97,9 +97,7 @@ pub fn plist_path() -> PathBuf {
 }
 
 pub fn scan_log_path() -> PathBuf {
-    dirs::home_dir()
-        .unwrap_or_default()
-        .join(".local/state/tmtidy/scan.log")
+    crate::paths::state_home().join("tmtidy/scan.log")
 }
 
 fn ensure_macos() -> Result<()> {
