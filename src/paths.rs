@@ -48,12 +48,18 @@ mod tests {
     #[test]
     fn empty_env_value_falls_back() {
         let got = resolve(Some(OsString::from("")), ".local/state");
-        assert_eq!(got, dirs::home_dir().unwrap_or_default().join(".local/state"));
+        assert_eq!(
+            got,
+            dirs::home_dir().unwrap_or_default().join(".local/state")
+        );
     }
 
     #[test]
     fn unset_env_value_falls_back() {
         let got = resolve(None, ".local/state");
-        assert_eq!(got, dirs::home_dir().unwrap_or_default().join(".local/state"));
+        assert_eq!(
+            got,
+            dirs::home_dir().unwrap_or_default().join(".local/state")
+        );
     }
 }
