@@ -1,27 +1,32 @@
+# tmtidy config — full reference: docs/config.md
+
+# Dirs to scan for build-dir markers.
 roots:
   - path: ~/Documents/it
-    max_depth: 6
+    max_depth: 6          # descend depth (default 8)
   - path: ~/Code
 
-# Optional: allowlist which baked-in defaults apply. Omit for all nine
-# (rust/node/python/go/swiftpm/gradle/maven/terraform/terragrunt).
-# Empty list = none.
+# Which baked-in rules apply. Omit = all nine
+# (rust/node/python/go/swiftpm/gradle/maven/terraform/terragrunt); [] = none.
 # defaults: [rust, node]
 
-# Optional: user rules merge over baked-in defaults.
+# Extra rules, merged with baked-in ones (same name overrides).
+# A marker file in a dir excludes that dir's `targets` from Time Machine.
 rules:
   - name: node
     markers: [package.json]
     targets: [node_modules, .next, dist]
 
+# Decay: move stale excluded build dirs to the Trash (recoverable).
 decay:
-  max_age_days: 30
-  min_size_mb: 100
-  auto_clean: false
-  exclude_rules: [swiftpm]
-  exclude_paths:
+  max_age_days: 30        # trash only dirs older than this
+  min_size_mb: 100        # ...and at least this big
+  auto_clean: false       # true = trash without `--clean` (--dry-run still wins)
+  exclude_rules: [swiftpm]       # rules decay never trashes (scan still excludes them)
+  exclude_paths:                 # paths decay never trashes (scan still excludes them)
     - ~/Projects/archive
-  json_output: ~/.local/state/tmtidy/decay-last.json
+  json_output: ~/.local/state/tmtidy/decay-last.json   # append each run as a JSON line here
 
+# Skipped entirely: not scanned, not excluded, never decayed.
 ignore:
   - ~/Projects/keepme
