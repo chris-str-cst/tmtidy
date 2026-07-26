@@ -30,6 +30,12 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Create the config dir + starter config and the state dir
+    Init {
+        /// Overwrite an existing config.yaml
+        #[arg(long)]
+        force: bool,
+    },
     /// Walk roots and exclude build dirs
     Scan {
         /// Report what would be excluded without writing any exclusions
@@ -83,8 +89,13 @@ pub fn run() -> Result<()> {
         println!();
         return Ok(());
     };
+    // init writes the config — it must run without loading one first.
+    if let Command::Init { force } = &command {
+        return crate::init::init(*force);
+    }
     let cfg = Config::load(cli.config.as_deref())?;
     match command {
+        Command::Init { .. } => unreachable!("handled above"),
         Command::Scan { dry_run } => cmd_scan(&cfg, dry_run, cli.verbose),
         Command::Decay {
             clean,
@@ -121,7 +132,7 @@ fn cmd_config(cfg: &Config) -> Result<()> {
 fn ensure_roots(cfg: &Config) -> Result<()> {
     if cfg.roots.is_empty() {
         anyhow::bail!(
-            "no roots configured. Create ~/.config/tmtidy/config.yaml with a `roots:` list."
+            "no roots configured. Run `tmtidy init` to create ~/.config/tmtidy/config.yaml, then set a `roots:` list."
         );
     }
     Ok(())

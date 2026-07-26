@@ -52,7 +52,15 @@ See [Development](#development).
 
 `tmtidy` needs at least one **root** to scan. Baked-in rules already cover
 rust/node/python/go/swiftpm/gradle/maven/terraform/terragrunt, so a config with
-only `roots:` works out of the box. Create it:
+only `roots:` works out of the box. Scaffold it with:
+
+```bash
+tmtidy init          # writes ~/.config/tmtidy/config.yaml + creates the state dir
+```
+
+`init` drops the fully-commented [`config.example.yaml`](config.example.yaml)
+template in place and never overwrites an existing config (pass `--force` to
+replace it). Then edit its `roots:` list. Prefer to do it by hand?
 
 ```bash
 mkdir -p ~/.config/tmtidy
@@ -79,6 +87,7 @@ decay — in [Configuration](docs/config.md).
 ## Usage
 
 ```bash
+tmtidy init            # scaffold config + state dir (--force to overwrite config)
 tmtidy scan            # exclude build dirs under configured roots (default)
 tmtidy scan --dry-run  # report what would be excluded, write nothing
 tmtidy status          # count current exclusions

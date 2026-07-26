@@ -1,7 +1,10 @@
 # Configuration
 
-Config lives at `~/.config/tmtidy/config.yaml`. Every key is optional except
-`roots:` (commands that walk the disk need at least one). A minimal config:
+Config lives at `~/.config/tmtidy/config.yaml`. Run `tmtidy init` to create it
+(writes the commented [`config.example.yaml`](../config.example.yaml) template
+and the `~/.local/state/tmtidy` log dir; won't overwrite an existing config
+without `--force`). Every key is optional except `roots:` (commands that walk
+the disk need at least one). A minimal config:
 
 ```yaml
 roots:

@@ -3,6 +3,7 @@ mod config;
 mod decay;
 mod defaults;
 mod exclude;
+mod init;
 mod logging;
 mod rules;
 mod schedule;
