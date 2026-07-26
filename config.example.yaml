@@ -2,9 +2,9 @@
 
 # Dirs to scan for build-dir markers.
 roots:
-  - path: ~/Documents/it
+  - path: ~/code
     max_depth: 6          # descend depth (default 8)
-  - path: ~/Code
+  - path: ~/projects
 
 # Which baked-in rules apply. Omit = all nine
 # (rust/node/python/go/swiftpm/gradle/maven/terraform/terragrunt); [] = none.
@@ -27,9 +27,9 @@ decay:
   auto_clean: false       # true = trash without `--clean` (--dry-run still wins)
   exclude_rules: [swiftpm]       # rules decay never trashes (scan still excludes them)
   exclude_paths:                 # paths decay never trashes (scan still excludes them)
-    - ~/Projects/archive
+    - ~/code/archive
   json_output: ~/.local/state/tmtidy/decay-last.json   # append each run as a JSON line here
 
 # Skipped entirely: not scanned, not excluded, never decayed.
 ignore:
-  - ~/Projects/keepme
+  - ~/code/keepme
