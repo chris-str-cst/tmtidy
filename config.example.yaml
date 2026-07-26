@@ -1,0 +1,27 @@
+roots:
+  - path: ~/Documents/it
+    max_depth: 6
+  - path: ~/Code
+
+# Optional: allowlist which baked-in defaults apply. Omit for all nine
+# (rust/node/python/go/swiftpm/gradle/maven/terraform/terragrunt).
+# Empty list = none.
+# defaults: [rust, node]
+
+# Optional: user rules merge over baked-in defaults.
+rules:
+  - name: node
+    markers: [package.json]
+    targets: [node_modules, .next, dist]
+
+decay:
+  max_age_days: 30
+  min_size_mb: 100
+  auto_clean: false
+  exclude_rules: [swiftpm]
+  exclude_paths:
+    - ~/Projects/archive
+  json_output: ~/.local/state/tmtidy/decay-last.json
+
+ignore:
+  - ~/Projects/keepme

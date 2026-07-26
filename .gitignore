@@ -1,0 +1,5 @@
+/target
+tasks/
+.superpowers/
+docs/superpowers/
+.idea/
