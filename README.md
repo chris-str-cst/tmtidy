@@ -84,6 +84,14 @@ commented? Grab [`config.example.yaml`](config.example.yaml). Full reference —
 all keys, the baked-rule table, the `defaults:` allowlist, custom rules, and
 decay — in [Configuration](docs/config.md).
 
+Configured your roots? Don't stop here — a one-time `scan` only excludes what
+exists today. Enable [scheduling](#scheduling-macos) so new build dirs get
+excluded automatically before Time Machine's next backup:
+
+```bash
+tmtidy schedule install   # hourly launchd agent, no sudo — runs once now too
+```
+
 ## Usage
 
 ```bash
